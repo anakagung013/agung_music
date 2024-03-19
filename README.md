@@ -19,14 +19,13 @@ This is YouTube clone created using React.js for educational purposes.
 Open the [.env.local.example](/.env.local.example) and fill in your Rapid API Key of Youtube V3 API which you can get from [here](https://rapidapi.com/ytdlfree/api/youtube-v31/) then save it as .env.local the run the following command:
 
 ```bash
+npm install
 npm run dev
-# or
-yarn run dev
 ```
 
 ## Demo
 
-Hosted anywhere you want. [Click here](https://yourtube-salimi.my) to visit.
+Hosted privately on personal DigitalOcean Droplet. [Click here](https://yourtube-salimi.my) to visit.
 <br>
 Direct link: `https://yourtube.salimi.my`
 
