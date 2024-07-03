@@ -18,13 +18,13 @@ const Navbar = () => (
     }}
   >
     <Link to='/' style={{ display: 'flex', alignItems: 'center' }}>
-      <img src={logo} alt='YourTube' height={45} />
+      <img src={logo} alt='AGUNG MUSIC' height={45} />
       <Typography
         variant='h5'
         fontWeight='700'
         sx={{ ml: '10px', display: { xs: 'none', md: 'block' } }}
       >
-        YourTube
+        
       </Typography>
     </Link>
     <SearchBar />

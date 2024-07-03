@@ -23,7 +23,7 @@ const SearchFeed = () => {
         sx={{ color: '#1d1d1d' }}
       >
         Search Results for:{' '}
-        <span style={{ color: '#F31503' }}>{searchTerm}</span> videos
+        <span style={{ color: 'skyblue' }}>{searchTerm}</span> videos
       </Typography>
 
       <Videos videos={videos} />

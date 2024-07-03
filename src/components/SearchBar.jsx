@@ -29,13 +29,13 @@ const SearchBar = () => {
     >
       <input
         className='search-bar'
-        placeholder='Search...'
+        placeholder='Search a Music'
         value={searchTerm}
         onChange={(e) => {
           setSearchTerm(e.target.value);
         }}
       />
-      <IconButton type='submit' sx={{ p: '10px', color: 'red' }}>
+      <IconButton type='submit' sx={{ p: '10px', color: 'skyblue' }}>
         <Search />
       </IconButton>
     </Paper>

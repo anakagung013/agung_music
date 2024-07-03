@@ -22,16 +22,12 @@ export default function AlertDialog() {
         aria-describedby='alert-dialog-description'
       >
         <DialogTitle id='alert-dialog-title'>
-          {'This is NOT REAL Youtube'}
+          {'NOTIFICATION'}
         </DialogTitle>
         <DialogContent>
           <DialogContentText id='alert-dialog-description'>
-            This site is not the real Youtube. I created this site for
-            educational purposes only. Under no circumstance shall I have any
-            liability to you for any loss or damage of any kind incurred as a
-            result of the use of the site or reliance on any information
-            provided on the site. Your use of the site and your reliance on any
-            information on the site is solely at your own risk.
+          Welcome to the Agung Music website, now Agung Music is on the website but different from Android,
+          the Agung Music Website is similar to YouTube.
           </DialogContentText>
         </DialogContent>
         <DialogActions>

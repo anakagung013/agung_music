@@ -36,7 +36,7 @@ const Feed = () => {
           variant='body2'
           sx={{ mt: 1.5, color: '#1d1d1d' }}
         >
-          Copyright &copy; {new Date().getFullYear()} YourTube
+          Copyright &copy; {new Date().getFullYear()} Agung Music
         </Typography>
       </Box>
 
@@ -50,7 +50,7 @@ const Feed = () => {
           mb={2}
           sx={{ color: '#1d1d1d' }}
         >
-          {selectedCategory} <span style={{ color: '#F31503' }}>videos</span>
+          {selectedCategory} <span style={{ color: 'skyblue' }}>videos</span>
         </Typography>
 
         <Videos videos={videos} />
