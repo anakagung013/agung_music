@@ -4,14 +4,19 @@ import { Sidebar, Videos } from './';
 import { fetchFromAPI } from '../utils/fetchFromAPI';
 
 const Feed = () => {
-  const [selectedCategory, setSelectedCategory] = useState('New');
+  const [selectedCategory, setSelectedCategory] = useState('Music');
   const [videos, setVideos] = useState([]);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true); // State untuk mengontrol buka-tutup sidebar
 
   useEffect(() => {
     fetchFromAPI(`search?part=snippet&q=${selectedCategory}`).then((data) =>
       setVideos(data.items)
     );
   }, [selectedCategory]);
+
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
 
   return (
     <Stack
@@ -24,12 +29,14 @@ const Feed = () => {
         sx={{
           height: { sx: 'auto', md: 'calc(100vh - 78px)' },
           borderRight: '1px solid #dddddd',
-          px: { sx: 0, md: 2 }
+          px: { sx: 0, md: 2 },
+          display: { md: isSidebarOpen ? 'block' : 'none' } // Tampilkan atau sembunyikan sidebar berdasarkan isSidebarOpen
         }}
       >
         <Sidebar
           selectedCategory={selectedCategory}
           setSelectedCategory={setSelectedCategory}
+          isSidebarOpen={isSidebarOpen} // Prop untuk menentukan tampilan sidebar
         />
         <Typography
           className='copyright'

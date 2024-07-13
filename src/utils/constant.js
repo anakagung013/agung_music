@@ -11,18 +11,22 @@ import GraphicEqIcon from '@mui/icons-material/GraphicEq';
 import TheaterComedyIcon from '@mui/icons-material/TheaterComedy';
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import DeveloperModeIcon from '@mui/icons-material/DeveloperMode';
+import SettingsIcon from '@mui/icons-material/Settings';
+import MenuIcon from '@mui/icons-material/Menu';
+import QueueIcon from '@mui/icons-material/Queue';
 
 export const logo = '/Agung Music Logo.png';
-
 export const categories = [
   // { name: 'New', icon: <HomeIcon /> },
+  { name: 'Music', icon: <MusicNoteIcon /> },
+  { name: 'Podcast', icon: <GraphicEqIcon /> },
+  // { name: 'Playlist', icon: <QueueIcon /> },
+  // { name: 'Education', icon: <SchoolIcon /> },
   // { name: 'PewDiePie', icon: <OndemandVideoIcon /> },
   // { name: 'Coding', icon: <CodeIcon /> },
   // { name: 'ReactJS', icon: <CodeIcon /> },
   // { name: 'NextJS', icon: <CodeIcon /> },
-  { name: 'Music', icon: <MusicNoteIcon /> },
-  // { name: 'Education', icon: <SchoolIcon /> },
-  { name: 'Podcast', icon: <GraphicEqIcon /> }
+ 
   // { name: 'Movie', icon: <OndemandVideoIcon /> },
   // { name: 'Gaming', icon: <SportsEsportsIcon /> },
   // { name: 'Live', icon: <LiveTvIcon /> },

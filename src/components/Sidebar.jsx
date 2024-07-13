@@ -1,45 +1,57 @@
-import { Stack } from '@mui/material';
 import React from 'react';
+import { Box, Button, Typography } from '@mui/material'; // Menggunakan komponen dari Material-UI
+
 import { categories } from '../utils/constant';
 
-const Sidebar = ({ selectedCategory, setSelectedCategory }) => {
+const Sidebar = ({ selectedCategory, setSelectedCategory, isSidebarOpen }) => {
   return (
-    <Stack
-      direction='row'
+    <Box
       sx={{
         overflowY: 'auto',
-        height: { sx: 'auto', md: '96%' },
-        flexDirection: { md: 'column' }
+        height: { xs: 'auto', md: '96%' },
+        flexDirection: { md: 'column' },
+        display: { md: isSidebarOpen ? 'block' : 'none' } // Tampilkan atau sembunyikan sidebar berdasarkan isSidebarOpen
       }}
     >
       {categories.map((category) => (
-        <button
-          onClick={() => setSelectedCategory(category.name)}
+        <Button
           key={category.name}
-          className='category-btn'
+          variant="text"
+          fullWidth
+          onClick={() => setSelectedCategory(category.name)}
           style={{
-            background: category.name === selectedCategory && 'skyblue',
-            color: category.name === selectedCategory && '#ffffff'
+            backgroundColor: category.name === selectedCategory ? 'skyblue' : 'transparent',
+            color: category.name === selectedCategory ? '#ffffff' : 'inherit',
+            padding: '10px',
+            marginBottom: '5px',
+            textTransform: 'none',
+            justifyContent: 'flex-start',
+            alignItems: 'center',
+            textAlign: 'left',
           }}
         >
           <span
             style={{
               color: category.name === selectedCategory ? '#ffffff' : 'skyblue',
-              marginRight: '15px'
+              marginRight: '15px',
+              fontSize: '1.2rem',
+              display: 'flex',
+              alignItems: 'center',
             }}
           >
             {category.icon}
           </span>
-          <span
+          <Typography
+            variant="body1"
             style={{
-              opacity: category.name === selectedCategory ? '1' : '0.8'
+              opacity: category.name === selectedCategory ? '1' : '0.8',
             }}
           >
             {category.name}
-          </span>
-        </button>
+          </Typography>
+        </Button>
       ))}
-    </Stack>
+    </Box>
   );
 };
 

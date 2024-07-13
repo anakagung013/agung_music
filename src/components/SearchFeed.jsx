@@ -15,18 +15,19 @@ const SearchFeed = () => {
   }, [searchTerm]);
 
   return (
-    <Box p={2} sx={{ overflowY: 'auto', height: '90vh', flex: 2 }}>
+    <Box p={2} sx={{ display: 'flex', flexDirection: 'column', overflowY: 'auto', height: '100vh' }}>
       <Typography
-        variant='h4'
-        fontWeight='bold'
+        variant="h4"
+        fontWeight="bold"
         mb={2}
         sx={{ color: '#1d1d1d' }}
       >
-        Search Results for:{' '}
-        <span style={{ color: 'skyblue' }}>{searchTerm}</span> videos
+        Search Results for: <span style={{ color: 'skyblue' }}>{searchTerm}</span> videos
       </Typography>
 
-      <Videos videos={videos} />
+      <Box sx={{ flex: 1 }}> {/* Use flex to expand content area */}
+        <Videos videos={videos} />
+      </Box>
     </Box>
   );
 };

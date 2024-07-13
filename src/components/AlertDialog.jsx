@@ -1,16 +1,23 @@
-import Button from '@mui/material/Button';
-import Dialog from '@mui/material/Dialog';
-import DialogActions from '@mui/material/DialogActions';
-import DialogContent from '@mui/material/DialogContent';
-import DialogContentText from '@mui/material/DialogContentText';
-import DialogTitle from '@mui/material/DialogTitle';
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Button } from '@mui/material';
 
 export default function AlertDialog() {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false); // Initially closed
+
+  // Simulate mobile detection
+  useEffect(() => {
+    const isMobile = window.innerWidth <= 600;
+    if (isMobile) {
+      setOpen(true);
+    }
+  }, []);
 
   const handleClose = () => {
     setOpen(false);
+  };
+
+  const handleOkay = () => {
+    window.location.href = 'https://shop.agungdev.online/product/agung-music/'; // Redirect URL
   };
 
   return (
@@ -22,16 +29,17 @@ export default function AlertDialog() {
         aria-describedby='alert-dialog-description'
       >
         <DialogTitle id='alert-dialog-title'>
-          {'NOTIFICATION'}
+          ALERT
         </DialogTitle>
         <DialogContent>
           <DialogContentText id='alert-dialog-description'>
-          Welcome to the Agung Music website, now Agung Music is on the website but different from Android,
-          the Agung Music Website is similar to YouTube.
+            This website is specifically for Desktop devices and not for mobile devices. Please purchase the Agung Music application.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleClose}>Okay</Button>
+          <Button onClick={handleOkay} color='primary'>
+            Buy Now
+          </Button>
         </DialogActions>
       </Dialog>
     </div>
