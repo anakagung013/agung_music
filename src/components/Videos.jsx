@@ -5,16 +5,6 @@ import { isMobile } from 'react-device-detect'; // Menambahkan import untuk mend
 import { VideoCard, ChannelCard } from './';
 
 const Videos = ({ videos, direction }) => {
-  if (isMobile) {
-    return (
-      <Stack justifyContent="center" alignItems="center" minHeight="200px">
-        <Typography variant="h6" mt={2} textAlign="center" color="error">
-          Sorry, you are using a mobile device. Please visit this website using a Desktop Device.
-        </Typography>
-      </Stack>
-    );
-  }
-
   if (!videos?.length) {
     return (
       <Stack justifyContent="center" alignItems="center" minHeight="200px">

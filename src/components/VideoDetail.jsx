@@ -1,20 +1,48 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import axios from "axios";
 import {
-  Box, Grid, Stack, Typography, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, useTheme, IconButton, Popover, Paper, MenuItem, AppBar, Toolbar, Slider, CircularProgress
-} from '@mui/material';
-import { CheckCircle, MoreVert, Pause, PlayArrow, SkipNext, AccessTime, Lyrics, Edit } from '@mui/icons-material'; // Mengimpor Edit dari MUI Icons
-import ReactPlayer from 'react-player';
-import { Videos } from './';
-import { fetchFromAPI } from '../utils/fetchFromAPI';
+  Box,
+  Grid,
+  Stack,
+  Typography,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  useTheme,
+  IconButton,
+  Popover,
+  Paper,
+  MenuItem,
+  AppBar,
+  Toolbar,
+  Slider,
+  CircularProgress,
+} from "@mui/material";
+import {
+  CheckCircle,
+  MoreVert,
+  Pause,
+  PlayArrow,
+  SkipNext,
+  AccessTime,
+  Lyrics,
+  Edit,
+} from "@mui/icons-material";
+import ReactPlayer from "react-player";
+import { Videos } from "./";
+import { fetchFromAPI } from "../utils/fetchFromAPI";
+import cheerio from "cheerio";
 
 const VideoDetail = () => {
   const [videoDetail, setVideoDetail] = useState(null);
   const [videos, setVideos] = useState(null);
-  const [lyrics, setLyrics] = useState('');
+  const [lyrics, setLyrics] = useState("");
   const [lyricsLines, setLyricsLines] = useState([]);
-  const [editedLyrics, setEditedLyrics] = useState('');
+  const [editedLyrics, setEditedLyrics] = useState("");
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [showLyrics, setShowLyrics] = useState(false);
   const [showRelatedVideos, setShowRelatedVideos] = useState(false);
@@ -27,52 +55,90 @@ const VideoDetail = () => {
   const [showDetails, setShowDetails] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [played, setPlayed] = useState(0);
+  const [openMore, setOpenMore] = useState(false); // State for More actions popover
   const { id } = useParams();
   const playerRef = useRef(null);
   const navigate = useNavigate();
   const theme = useTheme();
   const [playing, setPlaying] = useState(true);
-  const [isAppBarSticky, setIsAppBarSticky] = useState(false); // State for sticky AppBar
+  const [isAppBarSticky, setIsAppBarSticky] = useState(false);
   const [showEditPopup, setShowEditPopup] = useState(false);
 
   const fetchLyrics = useCallback(async (title, artist) => {
     const { songTitle, artist: cleanedArtist } = extractTitleAndArtist(title);
     const lyricsURL = `https://api.lyrics.ovh/v1/${cleanedArtist}/${songTitle}`;
+    const geniusURL = `https://api.genius.com/search?q=${encodeURIComponent(
+      songTitle + " " + cleanedArtist
+    )}&access_token=${process.env.GENIUS_API_KEY}`;
 
     try {
+      // Try fetching lyrics from lyrics.ovh
       const response = await axios.get(lyricsURL);
       if (response.data.lyrics) {
-        const formattedLyrics = response.data.lyrics.replace(/\n{2,}/g, '\n\n');
-        const lines = formattedLyrics.split('\n').filter(line => line.trim() !== '');
+        const formattedLyrics = response.data.lyrics.replace(/\n{2,}/g, "\n\n");
+        const lines = formattedLyrics
+          .split("\n")
+          .filter((line) => line.trim() !== "");
         setLyricsLines(lines);
         setLyrics(formattedLyrics);
       } else {
-        setLyrics('Lyrics not available');
+        // If no lyrics found, try Genius API
+        const geniusResponse = await axios.get(geniusURL);
+        if (geniusResponse.data.response.hits.length > 0) {
+          const geniusLyricsPath =
+            geniusResponse.data.response.hits[0].result.path;
+          const geniusLyricsURL = `https://api.genius.com${geniusLyricsPath}?access_token=${process.env.GENIUS_API_KEY}`;
+
+          const geniusLyricsResponse = await axios.get(geniusLyricsURL);
+          const geniusLyrics = extractLyricsFromGeniusResponse(
+            geniusLyricsResponse.data
+          );
+          const formattedLyrics = geniusLyrics.replace(/\n{2,}/g, "\n\n");
+          const lines = formattedLyrics
+            .split("\n")
+            .filter((line) => line.trim() !== "");
+          setLyricsLines(lines);
+          setLyrics(formattedLyrics);
+        } else {
+          setLyrics("Lyrics not available");
+        }
       }
     } catch (error) {
-      console.error('Error fetching lyrics:', error);
-      setLyrics('Lyrics not available');
+      console.error("Error fetching lyrics:", error);
+      setLyrics("Lyrics not available");
     }
   }, []);
+
+  const extractLyricsFromGeniusResponse = (data) => {
+    // Implement the function to extract lyrics from Genius response
+    // This is a placeholder implementation
+    const html = data.response.song.html;
+    const lyrics = html.replace(/<[^>]+>/g, "").trim(); // Strip HTML tags
+    return lyrics;
+  };
 
   useEffect(() => {
     const fetchVideoData = async () => {
       try {
-        const videoResponse = await fetchFromAPI(`videos?part=snippet,statistics&id=${id}`);
+        const videoResponse = await fetchFromAPI(
+          `videos?part=snippet,statistics&id=${id}`
+        );
         const videoData = videoResponse.items[0];
         setVideoDetail(videoData);
         fetchLyrics(videoData.snippet.title, videoData.snippet.channelTitle);
       } catch (error) {
-        console.error('Error fetching video data:', error);
+        console.error("Error fetching video data:", error);
       }
     };
 
     const fetchRelatedVideos = async () => {
       try {
-        const relatedVideosResponse = await fetchFromAPI(`search?part=snippet&relatedToVideoId=${id}&type=video`);
+        const relatedVideosResponse = await fetchFromAPI(
+          `search?part=snippet&relatedToVideoId=${id}&type=video`
+        );
         setVideos(relatedVideosResponse.items);
       } catch (error) {
-        console.error('Error fetching related videos:', error);
+        console.error("Error fetching related videos:", error);
       }
     };
 
@@ -93,19 +159,27 @@ const VideoDetail = () => {
       setIsAppBarSticky(offset > appBarHeight);
     };
 
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll);
     return () => {
-      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener("scroll", handleScroll);
     };
   }, []);
 
+  useEffect(() => {
+    const savedLyrics = localStorage.getItem(`editedLyrics_${id}`);
+    if (savedLyrics) {
+      setEditedLyrics(savedLyrics);
+    }
+  }, [id]);
+
   const extractTitleAndArtist = (title) => {
-    const regex = /(.+?)\s*-\s*(.+?)(?:\s*\[.*\]|\s*\(.*\)|\s*Official Video)?$/i;
+    const regex =
+      /(.+?)\s*-\s*(.+?)(?:\s*\[.*\]|\s*\(.*\)|\s*Official Video)?$/i;
     const match = title.match(regex);
     if (match) {
       return { songTitle: match[2].trim(), artist: match[1].trim() };
     }
-    return { songTitle: title, artist: '' };
+    return { songTitle: title, artist: "" };
   };
 
   const handleVideoEnd = () => {
@@ -120,7 +194,9 @@ const VideoDetail = () => {
     setPlayed(state.played);
     if (!lyricsLines.length) return;
     const currentTime = state.playedSeconds;
-    const currentLine = lyricsLines.find(line => line.startsWith(formatTime(currentTime)));
+    const currentLine = lyricsLines.find((line) =>
+      line.startsWith(formatTime(currentTime))
+    );
     if (currentLine) {
       setLyrics(currentLine);
     }
@@ -132,11 +208,11 @@ const VideoDetail = () => {
   };
 
   const formatTime = (seconds) => {
-    const format = val => `0${Math.floor(val)}`.slice(-2);
+    const format = (val) => `0${Math.floor(val)}`.slice(-2);
     const hours = seconds / 3600;
     const minutes = (seconds % 3600) / 60;
     seconds %= 60;
-    return [hours, minutes, seconds].map(format).join(':');
+    return [hours, minutes, seconds].map(format).join(":");
   };
 
   const togglePlayPause = () => {
@@ -160,7 +236,7 @@ const VideoDetail = () => {
   };
 
   const handleSetSleepTimer = () => {
-    console.log('Sleep timer set to:', sleepTimerValue);
+    console.log("Sleep timer set to:", sleepTimerValue);
     setShowSleepTimer(false);
   };
 
@@ -179,14 +255,13 @@ const VideoDetail = () => {
 
   const handleClickMore = (event) => {
     setAnchorEl(event.currentTarget);
+    setOpenMore(true); // Open More actions popover
   };
 
   const handleCloseMore = () => {
     setAnchorEl(null);
+    setOpenMore(false); // Close More actions popover
   };
-
-  const openMore = Boolean(anchorEl);
-  const idMore = openMore ? 'popover-more' : undefined;
 
   const openDetails = () => {
     setShowDetails(true);
@@ -212,30 +287,35 @@ const VideoDetail = () => {
   };
 
   const handleEditLyrics = () => {
-    setEditedLyrics(lyrics); // Initialize edited lyrics with current lyrics
+    setEditedLyrics(lyrics); // Load current lyrics into editedLyrics for editing
     setShowEditPopup(true);
   };
 
   const handleSaveLyrics = () => {
-    setLyrics(editedLyrics); // Save edited lyrics
+    setLyrics(editedLyrics); // Update displayed lyrics with edited content
+    localStorage.setItem(`editedLyrics_${id}`, editedLyrics); // Save edited lyrics to localStorage
     setShowEditPopup(false);
-    // Logic to save edited lyrics to backend/API if needed
   };
 
-  if (!videoDetail?.snippet) return <CircularProgress />;
-
-  const {
-    snippet: { title, channelId, channelTitle, thumbnails },
-    statistics: { viewCount, likeCount },
-  } = videoDetail;
-
   return (
-    <Box minHeight='95vh' bgcolor={theme.palette.background.default} sx={{ overflow: 'hidden', position: 'relative' }}>
-      <AppBar position={isAppBarSticky ? 'sticky' : 'relative'} sx={{ top: 'auto', bottom: 0, bgcolor: theme.palette.background.default, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+    <Box
+      minHeight="95vh"
+      bgcolor={theme.palette.background.default}
+      sx={{ overflow: "hidden", position: "relative" }}
+    >
+      <AppBar
+        position={isAppBarSticky ? "sticky" : "relative"}
+        sx={{
+          top: "auto",
+          bottom: 0,
+          bgcolor: theme.palette.background.default,
+          boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+        }}
+      >
         <Toolbar>
           <Box sx={{ flexGrow: 1 }}>
-            <Typography variant='h6' component='div' color="textPrimary">
-              {title}
+            <Typography variant="h6" component="div" color="textPrimary">
+              {videoDetail?.snippet.title}
             </Typography>
           </Box>
           <IconButton onClick={togglePlayPause}>
@@ -245,7 +325,7 @@ const VideoDetail = () => {
             value={played * 100}
             onChange={handleSeekChange}
             aria-labelledby="continuous-slider"
-            sx={{ width: '30%', mx: 2 }}
+            sx={{ width: "30%", mx: 2 }}
           />
           <IconButton onClick={handleVideoEnd}>
             <SkipNext />
@@ -261,15 +341,15 @@ const VideoDetail = () => {
             onClose={toggleSleepTimer}
             anchorEl={anchorEl}
             anchorOrigin={{
-              vertical: 'bottom',
-              horizontal: 'right',
+              vertical: "bottom",
+              horizontal: "right",
             }}
             transformOrigin={{
-              vertical: 'top',
-              horizontal: 'right',
+              vertical: "top",
+              horizontal: "right",
             }}
           >
-            <Paper sx={{ p: 2, width: '250px' }}>
+            <Paper sx={{ p: 2, width: "250px" }}>
               <Typography variant="h6" gutterBottom>
                 Set Sleep Timer
               </Typography>
@@ -289,27 +369,29 @@ const VideoDetail = () => {
             </Paper>
           </Popover>
           <IconButton
-            aria-describedby={idMore}
+            aria-describedby={openMore ? "popover-more" : undefined}
             onClick={handleClickMore}
           >
             <MoreVert />
           </IconButton>
           <Popover
-            id={idMore}
+            id="popover-more"
             open={openMore}
             anchorEl={anchorEl}
             onClose={handleCloseMore}
             anchorOrigin={{
-              vertical: 'bottom',
-              horizontal: 'right',
+              vertical: "bottom",
+              horizontal: "right",
             }}
             transformOrigin={{
-              vertical: 'top',
-              horizontal: 'right',
+              vertical: "top",
+              horizontal: "right",
             }}
           >
             <Paper>
-              <MenuItem onClick={toggleAdvancedSettings}>Advanced Settings</MenuItem>
+              <MenuItem onClick={toggleAdvancedSettings}>
+                Advanced Settings
+              </MenuItem>
               <MenuItem onClick={openDetails}>Details</MenuItem>
               <MenuItem onClick={openShare}>Share</MenuItem>
             </Paper>
@@ -317,46 +399,61 @@ const VideoDetail = () => {
         </Toolbar>
       </AppBar>
 
-      <Box minHeight='95vh' sx={{ overflowY: 'auto', paddingTop: '64px' }}>
+      <Box minHeight="95vh" sx={{ overflowY: "auto", paddingTop: "64px" }}>
         <Grid container spacing={3}>
           <Grid item xs={12} md={8}>
-            <Box sx={{ position: 'relative', zIndex: 1 }}>
+            <Box sx={{ position: "relative", zIndex: 1 }}>
               <ReactPlayer
                 ref={playerRef}
                 url={`https://www.youtube.com/watch?v=${id}`}
-                className='react-player'
-                width='100%'
-                height='450px'
+                className="react-player"
+                width="100%"
+                height="450px"
                 playing={playing}
                 onEnded={handleVideoEnd}
                 onProgress={handleProgress}
                 playbackRate={playbackRate}
                 pitch={pitch}
               />
-              <Typography variant='h5' align='center' sx={{ mt: 2 }}>{title}</Typography>
             </Box>
           </Grid>
           <Grid item xs={12} md={4}>
             <Box sx={{ p: 2 }}>
-              <Stack direction='column' spacing={2}>
+              <Stack direction="column" spacing={2}>
                 {showLyrics && (
-                  <Paper sx={{ maxHeight: '50vh', overflowY: 'auto', p: 2 }}>
-                    <Typography variant='h6' color='primary'>Lyrics</Typography>
-                    <Typography color={theme.palette.text.primary} variant='body1' sx={{ whiteSpace: 'pre-line' }}>
+                  <Paper sx={{ maxHeight: "50vh", overflowY: "auto", p: 2 }}>
+                    <Typography variant="h6" color="primary">
+                      Lyrics
+                    </Typography>
+                    <Typography
+                      color={theme.palette.text.primary}
+                      variant="body1"
+                      sx={{ whiteSpace: "pre-line" }}
+                    >
                       {lyrics}
                     </Typography>
                     <IconButton onClick={handleEditLyrics}>
-                      <Edit /> {/* Menggunakan ikon Edit di sini */}
+                      <Edit />
                     </IconButton>
                   </Paper>
                 )}
-                <Button onClick={toggleRelatedVideos} variant="outlined" color="primary" fullWidth sx={{ mt: 2 }}>
-                  {showRelatedVideos ? 'Hide Related Videos' : 'Show Related Videos'}
+                <Button
+                  onClick={toggleRelatedVideos}
+                  variant="outlined"
+                  color="primary"
+                  fullWidth
+                  sx={{ mt: 2 }}
+                >
+                  {showRelatedVideos
+                    ? "Hide Related Videos"
+                    : "Show Related Videos"}
                 </Button>
                 {showRelatedVideos && (
                   <Box mt={2}>
-                    <Typography variant='h6' color='primary'>Related Videos</Typography>
-                    <Videos videos={videos} direction='column' />
+                    <Typography variant="h6" color="primary">
+                      Related Videos
+                    </Typography>
+                    <Videos videos={videos} direction="column" />
                   </Box>
                 )}
               </Stack>
@@ -388,20 +485,32 @@ const VideoDetail = () => {
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleSaveSettings} color="primary">Save</Button>
-          <Button onClick={handleResetSettings} color="secondary">Reset</Button>
+          <Button onClick={handleSaveSettings} color="primary">
+            Save
+          </Button>
+          <Button onClick={handleResetSettings} color="secondary">
+            Reset
+          </Button>
         </DialogActions>
       </Dialog>
 
       <Dialog open={showDetails} onClose={closeDetails}>
         <DialogTitle>Video Details</DialogTitle>
         <DialogContent>
-          <Typography variant="body1"><strong>Title:</strong> {title}</Typography>
-          <Typography variant="body1"><strong>Artist:</strong> {channelTitle}</Typography>
-          <Typography variant="body1"><strong>Media ID:</strong> {id}</Typography>
+          <Typography variant="body1">
+            <strong>Title:</strong> {videoDetail?.snippet.title}
+          </Typography>
+          <Typography variant="body1">
+            <strong>Artist:</strong> {videoDetail?.snippet.channelTitle}
+          </Typography>
+          <Typography variant="body1">
+            <strong>Media ID:</strong> {id}
+          </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={closeDetails} color="primary">Close</Button>
+          <Button onClick={closeDetails} color="primary">
+            Close
+          </Button>
         </DialogActions>
       </Dialog>
 
@@ -418,8 +527,12 @@ const VideoDetail = () => {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCopyLink} color="primary">Copy Link</Button>
-          <Button onClick={closeShare} color="primary">Close</Button>
+          <Button onClick={handleCopyLink} color="primary">
+            Copy Link
+          </Button>
+          <Button onClick={closeShare} color="primary">
+            Close
+          </Button>
         </DialogActions>
       </Dialog>
 

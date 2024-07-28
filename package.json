@@ -9,6 +9,7 @@
     "@mui/material": "^5.14.18",
     "@mui/material-next": "^6.0.0-alpha.126",
     "axios": "^1.6.2",
+    "cheerio": "^1.0.0-rc.12",
     "cors": "^2.8.5",
     "file-saver": "^2.0.5",
     "react": "^18.2.0",

@@ -1,37 +1,37 @@
-// server.js atau app.js
+// server.js
+const { createServer } = require("http");
+const { parse } = require("url");
+const next = require("next");
 
-const express = require('express');
-const axios = require('axios');
-const cors = require('cors'); // Jika belum diinstall, install dulu dengan npm install cors
+const dev = process.env.NODE_ENV !== "production";
+const hostname = "localhost";
+const port = process.env.port || 8080;
+// when using middleware `hostname` and `port` must be provided below
+const app = next({ dev, hostname, port });
+const handle = app.getRequestHandler();
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+app.prepare().then(() => {
+  createServer(async (req, res) => {
+    try {
+      // Be sure to pass `true` as the second argument to `url.parse`.
+      // This tells it to parse the query portion of the URL.
+      const parsedUrl = parse(req.url, true);
+      const { pathname, query } = parsedUrl;
 
-app.use(cors()); // Izinkan CORS untuk semua route
-
-// Endpoint untuk mengambil lirik lagu
-app.get('/api/lyrics', async (req, res) => {
-  const { title, artist } = req.query;
-  const apiKey = '89dd0750ccd99920201b3781d84f4839';
-  const lyricsURL = `https://api.musixmatch.com/ws/1.1/matcher.lyrics.get?q_track=${title}&q_artist=${artist}&apikey=${apiKey}`;
-
-  try {
-    const response = await axios.get(lyricsURL);
-    if (response.data.message.body.lyrics) {
-      const formattedLyrics = response.data.message.body.lyrics.lyrics_body.replace(/\n{2,}/g, '\n\n');
-      const lines = formattedLyrics.split('\n').filter(line => line.trim() !== '');
-      res.send(lines.join('\n'));
-    } else {
-      res.status(404).send('Lyrics not available');
+      if (pathname === "/a") {
+        await app.render(req, res, "/a", query);
+      } else if (pathname === "/b") {
+        await app.render(req, res, "/b", query);
+      } else {
+        await handle(req, res, parsedUrl);
+      }
+    } catch (err) {
+      console.error("Error occurred handling", req.url, err);
+      res.statusCode = 500;
+      res.end("internal server error");
     }
-  } catch (error) {
-    console.error('Error fetching lyrics:', error);
-    res.status(500).send('Error fetching lyrics');
-  }
+  }).listen(port, (err) => {
+    if (err) throw err;
+    console.log(`> Ready on http://${hostname}:${port}`);
+  });
 });
-
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
-});
-
-

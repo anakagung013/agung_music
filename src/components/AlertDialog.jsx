@@ -16,8 +16,21 @@ export default function AlertDialog() {
     setOpen(false);
   };
 
-  const handleOkay = () => {
-    window.location.href = 'https://shop.agungdev.online/product/agung-music/'; // Redirect URL
+  const openAgungMusic = () => {
+    // Open the app if installed, otherwise redirect to website
+    const appUrl = 'agungmusic://';
+    const webUrl = 'https://agungdev.com';
+
+    // Check if the app is installed
+    const ifr = document.createElement('iframe');
+    ifr.src = appUrl;
+    ifr.style.display = 'none';
+    document.body.appendChild(ifr);
+
+    setTimeout(() => {
+      document.body.removeChild(ifr);
+      window.location.href = webUrl;
+    }, 2500); // Wait for 2.5 seconds
   };
 
   return (
@@ -33,12 +46,15 @@ export default function AlertDialog() {
         </DialogTitle>
         <DialogContent>
           <DialogContentText id='alert-dialog-description'>
-            This website is specifically for Desktop devices and not for mobile devices. Please purchase the Agung Music application.
+            You have been detected using a Mobile Device. To enjoy a good music listening experience, open Agung Music now.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleOkay} color='primary'>
-            Buy Now
+          <Button onClick={handleClose} color='primary'>
+            Open in web
+          </Button>
+          <Button onClick={openAgungMusic} color='primary'>
+            Open Agung Music
           </Button>
         </DialogActions>
       </Dialog>
