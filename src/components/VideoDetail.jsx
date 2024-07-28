@@ -106,7 +106,7 @@ const VideoDetail = () => {
       console.error("Error fetching lyrics:", error);
       setLyrics("Lyrics not available");
     }
-  }, []);
+  }, []); 
 
   const extractLyricsFromGeniusResponse = (data) => {
     // Implement the function to extract lyrics from Genius response
