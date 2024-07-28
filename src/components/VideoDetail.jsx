@@ -35,7 +35,10 @@ import {
 import ReactPlayer from "react-player";
 import { Videos } from "./";
 import { fetchFromAPI } from "../utils/fetchFromAPI";
+<<<<<<< HEAD
 import cheerio from "cheerio";
+=======
+>>>>>>> d98b08778f811b17cd3dc2d9db773b0a669a94c2
 
 const VideoDetail = () => {
   const [videoDetail, setVideoDetail] = useState(null);
