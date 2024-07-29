@@ -13,7 +13,18 @@ const options = {
   }
 };
 
+const allowedCategories = ['Official Music Video', 'Official Music Audio'];
+
 export const fetchFromAPI = async (url) => {
   const { data } = await axios.get(`${BASE_URL}/${url}`, options);
-  return data;
+  const filteredData = data.items.filter(item => {
+    const title = item.snippet.title.toLowerCase();
+    const channelTitle = item.snippet.channelTitle.toLowerCase();
+    
+    return (
+      allowedCategories.some(category => title.includes(category.toLowerCase())) ||
+      channelTitle.includes('topic')
+    );
+  });
+  return filteredData;
 };
