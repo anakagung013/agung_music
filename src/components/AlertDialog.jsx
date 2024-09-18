@@ -17,20 +17,21 @@ export default function AlertDialog() {
   };
 
   const openAgungMusic = () => {
-    // Open the app if installed, otherwise redirect to website
-    const appUrl = 'agungmusic://';
+    const appUrl = 'intent://agungmusic/#Intent;scheme=agungmusic;package=com.zionhuang.music;end';
     const webUrl = 'https://agungdev.com';
 
-    // Check if the app is installed
-    const ifr = document.createElement('iframe');
-    ifr.src = appUrl;
-    ifr.style.display = 'none';
-    document.body.appendChild(ifr);
+    console.log('Attempting to open app URL:', appUrl);
 
+    // Open the app using intent URL
+    window.location.href = appUrl;
+
+    // Fallback to website after a delay if the app is not opened
     setTimeout(() => {
-      document.body.removeChild(ifr);
-      window.location.href = webUrl;
-    }, 2500); // Wait for 2.5 seconds
+      if (document.hasFocus()) {
+        console.log('Fallback to web URL:', webUrl);
+        window.location.href = webUrl;
+      }
+    }, 1500); // 1.5 second delay to check if app opened
   };
 
   return (

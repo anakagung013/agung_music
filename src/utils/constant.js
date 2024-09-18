@@ -41,7 +41,7 @@ export const categories = [
 export const demoThumbnailUrl =
   'https://i.ytimg.com/vi/JDsuYy1qsiA/hqdefault.jpg';
 export const demoChannelUrl = '/channel/UC-lHJZR3Gqxm24_Vd_AJ5Yw';
-export const demoVideoUrl = '/video/JDsuYy1qsiA';
+export const demoVideoUrl = '/video?=JDsuYy1qsiA';
 export const demoChannelTitle = 'PewDiePie';
 export const demoVideoTitle = 'Our house was attacked...';
 export const demoProfilePicture =

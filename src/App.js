@@ -12,7 +12,7 @@ const App = () => {
     <Router>
       <Box sx={{ backgroundColor: 'white' }}>
         <Navbar />
-        <AlertDialog /> {/* Tambahkan AlertDialog di sini */}
+        <AlertDialog />
         <Routes>
           <Route path="/" exact element={<Feed />} />
           <Route path="/video/:id" element={<VideoDetail />} />

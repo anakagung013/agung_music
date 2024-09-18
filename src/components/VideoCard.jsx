@@ -19,7 +19,8 @@ const VideoCard = ({
     <Card
       sx={{
         width: { xs: '100%', sm: '358px', md: '320px' },
-        borderRadius: '10px'
+        borderRadius: '10px',
+        boxShadow: 'none', // Remove shadow
       }}
     >
       <Link to={videoId ? `/video/${videoId}` : demoVideoUrl}>
@@ -39,11 +40,7 @@ const VideoCard = ({
           </Typography>
         </Link>
         <Link
-          to={
-            snippet?.channelId
-              ? `/channel/${snippet?.channelId}`
-              : demoChannelUrl
-          }
+          to={snippet?.channelId ? `/channel/${snippet?.channelId}` : demoChannelUrl}
         >
           <Typography variant='subtitle2' fontWeight='bold' color='#808080'>
             {snippet?.channelTitle || demoChannelTitle}

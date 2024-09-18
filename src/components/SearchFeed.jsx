@@ -3,6 +3,8 @@ import React, { useEffect, useState } from 'react';
 import { Videos } from './';
 import { fetchFromAPI } from '../utils/fetchFromAPI';
 import { useParams } from 'react-router-dom';
+import { locales } from '../locales'; // Import objek locales
+
 
 const SearchFeed = () => {
   const [videos, setVideos] = useState([]);

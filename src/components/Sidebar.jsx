@@ -1,10 +1,12 @@
 import React from 'react';
-import { Box, Button, Typography } from '@mui/material'; // Menggunakan komponen dari Material-UI
-
+import { Box, Button, Typography, AppBar, Toolbar, useMediaQuery, useTheme } from '@mui/material';
 import { categories } from '../utils/constant';
 
 const Sidebar = ({ selectedCategory, setSelectedCategory, isSidebarOpen }) => {
-  return (
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md')); // Detect if the device is mobile
+
+  const sidebarContent = (
     <Box
       sx={{
         overflowY: 'auto',
@@ -28,6 +30,7 @@ const Sidebar = ({ selectedCategory, setSelectedCategory, isSidebarOpen }) => {
             justifyContent: 'flex-start',
             alignItems: 'center',
             textAlign: 'left',
+            borderRadius: '26px', // Menambahkan radius border
           }}
         >
           <span
@@ -45,6 +48,7 @@ const Sidebar = ({ selectedCategory, setSelectedCategory, isSidebarOpen }) => {
             variant="body1"
             style={{
               opacity: category.name === selectedCategory ? '1' : '0.8',
+              display: isMobile ? 'none' : 'block', // Hide text on mobile
             }}
           >
             {category.name}
@@ -52,6 +56,70 @@ const Sidebar = ({ selectedCategory, setSelectedCategory, isSidebarOpen }) => {
         </Button>
       ))}
     </Box>
+  );
+
+  return (
+    <>
+      {isMobile ? (
+        // Navbar for mobile devices
+        <AppBar
+          position="fixed"
+          sx={{
+            top: 'auto',
+            bottom: 0,
+            backgroundColor: theme.palette.background.default,
+            boxShadow: 'none', // Remove shadow for a cleaner look
+            display: 'flex',
+            justifyContent: 'space-around', // Distribute buttons evenly
+            alignItems: 'center',
+          }}
+        >
+          <Toolbar>
+            {categories.map((category) => (
+              <Button
+                key={category.name}
+                onClick={() => setSelectedCategory(category.name)}
+                style={{
+                  color: 'skyblue', // Set default color for all icons
+                  padding: '10px',
+                }}
+              >
+                <span
+                  style={{
+                    color: 'skyblue', // Set default color for all icons
+                    marginRight: '8px',
+                    fontSize: '1.2rem',
+                  }}
+                >
+                  {category.icon}
+                </span>
+                {/* Hide text on mobile */}
+                <Typography
+                  variant="body2"
+                  style={{
+                    display: 'none',
+                  }}
+                >
+                  {category.name}
+                </Typography>
+              </Button>
+            ))}
+          </Toolbar>
+        </AppBar>
+      ) : (
+        // Sidebar for larger screens
+        <Box
+          sx={{
+            overflowY: 'auto',
+            height: '96%',
+            flexDirection: 'column',
+            display: isSidebarOpen ? 'block' : 'none'
+          }}
+        >
+          {sidebarContent}
+        </Box>
+      )}
+    </>
   );
 };
 
