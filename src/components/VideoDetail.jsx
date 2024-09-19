@@ -35,8 +35,9 @@ import {
 } from "@mui/icons-material";
 import ReactPlayer from "react-player";
 import { Videos } from "./";
-import { fetchFromAPI } from "../utils/fetchFromAPI";
+import { fetchFromAPI, fetchComments } from "../utils/fetchFromAPI"; // Pastikan import sesuai
 import { locales } from '../locales';
+
 
 const VideoDetail = () => {
   const [language, setLanguage] = useState('en'); // Set default language
@@ -59,6 +60,8 @@ const VideoDetail = () => {
   const [showShare, setShowShare] = useState(false);
   const [played, setPlayed] = useState(0);
   const [openMore, setOpenMore] = useState(false); // State for More actions popover
+  const [newComment, setNewComment] = useState(""); // State for new comment
+  const [showCommentDialog, setShowCommentDialog] = useState(false); // State to control comment dialog
   const { id } = useParams();
   const playerRef = useRef(null);
   const navigate = useNavigate();
@@ -67,8 +70,31 @@ const VideoDetail = () => {
   const [playing, setPlaying] = useState(true);
   const [isAppBarSticky, setIsAppBarSticky] = useState(false);
   const [showEditPopup, setShowEditPopup] = useState(false);
+  const [originalLyrics, setOriginalLyrics] = useState(lyrics);
+  const [showComments, setShowComments] = useState(false);
+  const [comments, setComments] = useState([]);
 
-  
+
+  const fetchComments = useCallback(async () => {
+    // Replace with your API call to fetch comments
+    // Example:
+    // const response = await fetchFromAPI(`comments?videoId=${id}`);
+    // setComments(response.data);
+    const savedComments = JSON.parse(localStorage.getItem(`comments_${id}`)) || [];
+    setComments(savedComments);
+  }, [id]);
+
+  const addComment = () => {
+    if (newComment.trim() === "") return;
+    const updatedComments = [...comments, newComment];
+    setComments(updatedComments);
+    localStorage.setItem(`comments_${id}`, JSON.stringify(updatedComments)); // Save to localStorage
+    setNewComment("");
+  };
+
+  useEffect(() => {
+    fetchComments();
+  }, [fetchComments]);
 
   const fetchLyrics = useCallback(async (title, artist) => {
     const { songTitle, artist: cleanedArtist } = extractTitleAndArtist(title);
@@ -163,6 +189,7 @@ const VideoDetail = () => {
       const offset = window.scrollY;
       const appBarHeight = 64; // Assuming default MUI AppBar height
       setIsAppBarSticky(offset > appBarHeight);
+      setOriginalLyrics(lyrics);
     };
 
     window.addEventListener("scroll", handleScroll);
@@ -178,6 +205,22 @@ const VideoDetail = () => {
       setEditedLyrics(savedLyrics); // Juga set editedLyrics agar form edit menampilkan lirik yang tersimpan
     }
   }, [id]);  
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const commentsData = await fetchComments(id);
+        console.log("Fetched comments data:", commentsData); // Log data yang diterima
+        setComments(commentsData || []); // Set comments atau array kosong jika data tidak tersedia
+      } catch (error) {
+        console.error("Error fetching comments:", error);
+        setComments([]); // Set array kosong jika terjadi error
+      }
+    };
+    fetchData();
+  }, [id]);
+  
+  
 
   const extractTitleAndArtist = (title) => {
     const regex =
@@ -224,13 +267,24 @@ const VideoDetail = () => {
     return [hours, minutes, seconds].map(format).join(":");
   };
 
+  const fetchVideoComments = async () => {
+    try {
+      const comments = await fetchComments(id);
+      setComments(comments);
+    } catch (error) {
+      console.error("Error fetching comments:", error);
+    }
+  };
+
   const togglePlayPause = () => {
     setPlaying(!playing);
   };
 
   const toggleLyrics = () => {
+    console.log("Lyrics icon clicked");
     setShowLyrics(!showLyrics);
   };
+  
 
   const toggleRelatedVideos = () => {
     setShowRelatedVideos(!showRelatedVideos);
@@ -296,38 +350,45 @@ const VideoDetail = () => {
   };
 
   const handleEditLyrics = () => {
-    setEditedLyrics(lyrics); // Load current lyrics into editedLyrics for editing
+    console.log('Icon clicked');
     setShowEditPopup(true);
   };
+  
+  
 
   const handleSaveLyrics = () => {
     setLyrics(editedLyrics); // Update displayed lyrics with edited content
     localStorage.setItem(`editedLyrics_${id}`, editedLyrics); // Save edited lyrics to localStorage
     setShowEditPopup(false);
+    onLyricsChange(editedLyrics); // Kirim lirik yang diedit ke parent
   };
 
+  const handleResetLyrics = () => {
+    setEditedLyrics(originalLyrics); // Reset lirik ke nilai asli
+  };
+  
   return (
     <Box
-      minHeight="95vh"
-      bgcolor={theme.palette.background.default}
-      sx={{ overflow: "hidden", position: "relative" }}
-    >
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={8}>
-          <Box sx={{ position: "relative", zIndex: 1 }}>
+    minHeight="95vh"
+    bgcolor={theme.palette.background.default}
+    sx={{ overflow: "hidden", position: "relative" }}
+  >
+    <Grid container spacing={3}>
+      <Grid item xs={12} md={8}>
+        <Box sx={{ position: "relative", zIndex: 1 }}>
           <ReactPlayer
-  url={`https://www.youtube.com/watch?v=${id}`}
-  className="react-player"
-  width="100%"
-  height="450px"
-  playing={playing}
-  onEnded={handleVideoEnd}
-  onProgress={handleProgress}
-  playbackRate={playbackRate}
-  pitch={pitch}
-  ref={playerRef}  // Ensure this is set
-/>
-
+            url={`https://www.youtube.com/watch?v=${id}`}
+            className="react-player"
+            width="100%"
+            height="450px"
+            playing={playing}
+            onEnded={handleVideoEnd}
+            onProgress={handleProgress}
+            playbackRate={playbackRate}
+            pitch={pitch}
+            ref={playerRef}
+          />
+  
             {!isMobile && (
               <Box sx={{ position: 'absolute', bottom: 0, width: '100%' }}>
                 <AppBar
@@ -345,7 +406,7 @@ const VideoDetail = () => {
                       value={played * 100}
                       onChange={handleSeekChange}
                       aria-labelledby="continuous-slider"
-                      sx={{ width: "30%", mx: 2 }}
+                      sx={{ width: "90%", mx: 2 }}
                     />
                     <IconButton onClick={handleVideoEnd}>
                       <SkipNext />
@@ -425,23 +486,33 @@ const VideoDetail = () => {
         <Grid item xs={12} md={4}>
           <Box sx={{ p: 2 }}>
             <Stack direction="column" spacing={2}>
-              {showLyrics && (
-                <Paper sx={{ maxHeight: "50vh", overflowY: "auto", p: 2 }}>
+            {showLyrics && (
+              <Paper
+                elevation={0}
+                sx={{ maxHeight: "50vh", overflowY: "auto", p: 2, position: 'relative' }}
+              >
+                <Stack
+                  direction="row"
+                  alignItems="center"
+                  spacing={1}
+                  sx={{ mb: 2 }}
+                >
                   <Typography variant="h6" color="primary">
                     Lyrics
                   </Typography>
-                  <Typography
-                    color={theme.palette.text.primary}
-                    variant="body1"
-                    sx={{ whiteSpace: "pre-line" }}
-                  >
-                    {lyrics}
-                  </Typography>
-                  <IconButton onClick={handleEditLyrics}>
+                  <IconButton onClick={() => setShowEditPopup(true)}>
                     <Edit />
                   </IconButton>
-                </Paper>
-              )}
+                </Stack>
+                <Typography
+                  color={theme.palette.text.primary}
+                  variant="body1"
+                  sx={{ whiteSpace: "pre-line" }}
+                >
+                  {lyrics}
+                </Typography>
+              </Paper>
+            )}
               <Button
                 onClick={toggleRelatedVideos}
                 variant="outlined"
@@ -461,68 +532,94 @@ const VideoDetail = () => {
                   <Videos videos={videos} direction="column" />
                 </Box>
               )}
+               {/* <Button
+                onClick={() => setShowComments(!showComments)}
+                variant="outlined"
+                color="primary"
+                fullWidth
+                sx={{ mt: 2, borderRadius: 8 }}
+              >
+                {showComments ? "Hide Comments" : "Show Comments"}
+              </Button>
+
+              {showComments && (
+                <Box mt={2}>
+                  <Typography variant="h6" color="primary">
+                    Comments
+                  </Typography>
+                  {comments.length > 0 ? (
+                    comments.map((comment, index) => (
+                      <Paper key={index} sx={{ p: 2, mb: 1 }}>
+                        <Typography variant="body1">{comment}</Typography>
+                      </Paper>
+                    ))
+                  ) : (
+                    <Typography>No comments available.</Typography>
+                  )}
+                </Box>
+              )} */}
             </Stack>
           </Box>
         </Grid>
       </Grid>
-
+  
       {/* Bottom Navbar for Mobile Devices */}
       {isMobile && (
-  <AppBar
-    position="fixed"
-    sx={{
-      top: 'auto',
-      bottom: 0,
-      bgcolor: theme.palette.background.default,
-      boxShadow: 'none',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      p: 1,
-    }}
-  >
-    <Stack
-      direction="row"
-      spacing={1}
-      alignItems="center"
-      sx={{ width: '100%', p: 1 }}
-    >
-      <IconButton onClick={togglePlayPause}>
-        {playing ? <Pause /> : <PlayArrow />}
-      </IconButton>
-      <Slider
-        value={played * 100}
-        onChange={handleSeekChange}
-        aria-labelledby="continuous-slider"
-        sx={{ width: "60%" }}
-      />
-      <IconButton onClick={handleVideoEnd}>
-        <SkipNext />
-      </IconButton>
-    </Stack>
-    <Stack
-      direction="row"
-      spacing={1}
-      alignItems="center"
-      sx={{ width: '100%', p: 1 }}
-    >
-      <IconButton onClick={toggleLyrics}>
-        <Lyrics />
-      </IconButton>
-      <IconButton onClick={toggleSleepTimer}>
-        <AccessTime />
-      </IconButton>
-      <IconButton
-        aria-describedby={openMore ? "popover-more" : undefined}
-        onClick={handleClickMore}
-      >
-        <MoreVert />
-      </IconButton>
-    </Stack>
-  </AppBar>
-)}
-
-
+        <AppBar
+          position="fixed"
+          sx={{
+            top: 'auto',
+            bottom: 0,
+            bgcolor: theme.palette.background.default,
+            boxShadow: 'none',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            p: 1,
+          }}
+        >
+          <Stack
+            direction="row"
+            spacing={1}
+            alignItems="center"
+            sx={{ width: '100%', p: 1 }}
+          >
+            <IconButton onClick={togglePlayPause}>
+              {playing ? <Pause /> : <PlayArrow />}
+            </IconButton>
+            <Slider
+              value={played * 100}
+              onChange={handleSeekChange}
+              aria-labelledby="continuous-slider"
+              sx={{ width: "70%" }}
+            />
+            <IconButton onClick={handleVideoEnd}>
+              <SkipNext />
+            </IconButton>
+          </Stack>
+          <Stack
+            direction="row"
+            spacing={2}  // Add spacing between icons
+            alignItems="center"
+            justifyContent="center"  // Center icons horizontally
+            sx={{ width: '100%', p: 1 }}
+          >
+            <IconButton onClick={toggleLyrics}>
+              <Lyrics />
+            </IconButton>
+            <IconButton onClick={toggleSleepTimer}>
+              <AccessTime />
+            </IconButton>
+            <IconButton
+              aria-describedby={openMore ? "popover-more" : undefined}
+              onClick={handleClickMore}
+            >
+              <MoreVert />
+            </IconButton>
+          </Stack>
+        </AppBar>
+      )}
+  
       {/* Dialogs */}
       <Dialog open={showAdvancedSettings} onClose={toggleAdvancedSettings}>
         <DialogTitle>Advanced Settings</DialogTitle>
@@ -555,7 +652,7 @@ const VideoDetail = () => {
           </Button>
         </DialogActions>
       </Dialog>
-
+  
       <Dialog open={showDetails} onClose={closeDetails}>
         <DialogTitle>Video Details</DialogTitle>
         <DialogContent>
@@ -575,7 +672,7 @@ const VideoDetail = () => {
           </Button>
         </DialogActions>
       </Dialog>
-
+  
       <Dialog open={showShare} onClose={closeShare}>
         <DialogTitle>Share Video</DialogTitle>
         <DialogContent>
@@ -590,37 +687,72 @@ const VideoDetail = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCopyLink} color="primary">
-            Copy
+            Copy Link
           </Button>
-          <Button onClick={closeShare} color="primary">
+          <Button onClick={closeShare} color="secondary">
             Close
           </Button>
         </DialogActions>
       </Dialog>
 
+       
       <Dialog open={showEditPopup} onClose={() => setShowEditPopup(false)}>
         <DialogTitle>Edit Lyrics</DialogTitle>
         <DialogContent>
           <TextField
             label="Lyrics"
             multiline
+            rows={10}
             fullWidth
-            rows={6}
             value={editedLyrics}
             onChange={(e) => setEditedLyrics(e.target.value)}
           />
         </DialogContent>
         <DialogActions>
+          <Button onClick={handleSaveLyrics} color="primary">
+            Save
+          </Button>
+          <Button onClick={handleResetLyrics} color="secondary">
+            Reset
+          </Button>
           <Button onClick={() => setShowEditPopup(false)} color="secondary">
             Cancel
           </Button>
-          <Button onClick={handleSaveLyrics} color="primary">
-            Save
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={showCommentDialog} onClose={() => setShowCommentDialog(false)}>
+        <DialogTitle>Comments</DialogTitle>
+        <DialogContent>
+          <Stack direction="column" spacing={2}>
+            {comments.map((comment, index) => (
+              <Paper key={index} sx={{ p: 2, mb: 1 }}>
+                <Typography variant="body1">{comment}</Typography>
+              </Paper>
+            ))}
+            <TextField
+              fullWidth
+              multiline
+              rows={3}
+              label="Add a comment"
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              variant="outlined"
+              sx={{ mt: 1 }}
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={addComment} color="primary">
+            Add Comment
+          </Button>
+          <Button onClick={() => setShowCommentDialog(false)} color="secondary">
+            Cancel
           </Button>
         </DialogActions>
       </Dialog>
     </Box>
   );
-};
+};  
 
 export default VideoDetail;
