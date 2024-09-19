@@ -360,7 +360,6 @@ const VideoDetail = () => {
     setLyrics(editedLyrics); // Update displayed lyrics with edited content
     localStorage.setItem(`editedLyrics_${id}`, editedLyrics); // Save edited lyrics to localStorage
     setShowEditPopup(false);
-    onLyricsChange(editedLyrics); // Kirim lirik yang diedit ke parent
   };
 
   const handleResetLyrics = () => {
