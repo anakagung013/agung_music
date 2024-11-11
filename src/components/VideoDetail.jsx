@@ -316,7 +316,7 @@ const VideoDetail = () => {
       const seekTo = (newValue / 100) * playerRef.current.getDuration();
       playerRef.current.seekTo(seekTo, 'seconds');
     }
-  };;
+  };
 
   const formatTime = (seconds) => {
     const format = (val) => `0${Math.floor(val)}`.slice(-2);
