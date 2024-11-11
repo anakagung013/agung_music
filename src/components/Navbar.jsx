@@ -1,12 +1,33 @@
 import React, { useEffect, useState } from 'react';
-import { Stack, Typography, IconButton, Button, Avatar, Menu, MenuItem, Dialog, DialogTitle, DialogContent, DialogActions, Slide, FormControl, InputLabel, Select, MenuItem as MuiMenuItem, FormControlLabel, Switch } from '@mui/material';
+import { 
+  Stack, 
+  Typography, 
+  IconButton, 
+  Button, 
+  Avatar, 
+  Menu, 
+  MenuItem, 
+  Dialog, 
+  DialogTitle, 
+  DialogContent, 
+  DialogActions, 
+  Slide, 
+  FormControl, 
+  InputLabel, 
+  Select, 
+  MenuItem as MuiMenuItem, 
+  FormControlLabel, 
+  Switch,
+  Tooltip
+} from '@mui/material';
 import { Link, useNavigate } from 'react-router-dom';
 import { logo } from '../utils/constant';
 import SearchBar from './SearchBar';
 import MenuIcon from '@mui/icons-material/Menu';
+import SettingsIcon from '@mui/icons-material/Settings'; // Tambahkan impor ini
 import { gapi } from 'gapi-script';
-import { locales } from '../locales'; // Import objek locales
-import { useTheme, useMediaQuery } from '@mui/material'; // Add this import
+import { locales } from '../locales';
+import { useTheme, useMediaQuery } from '@mui/material';
 
 const clientId = '478166253401-1rri0qbpf5fllm8niqhb5g7kutkrss78.apps.googleusercontent.com';
 
@@ -20,12 +41,11 @@ const Navbar = ({ toggleSidebar }) => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [openSettings, setOpenSettings] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
-  const [language, setLanguage] = useState('en'); // State untuk bahasa
+  const [language, setLanguage] = useState('en');
   const [playlists, setPlaylists] = useState([]);
   const navigate = useNavigate();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md')); // Check if the screen is mobile
-
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   useEffect(() => {
     const initClient = () => {
       gapi.client.init({
@@ -42,7 +62,7 @@ const Navbar = ({ toggleSidebar }) => {
             email: profile.getEmail(),
           });
           setLoggedIn(true);
-          fetchPlaylists(); // Fetch playlists after login
+          // fetchPlaylists(); // Fetch playlists after login
         }
       });
     };
@@ -103,8 +123,29 @@ const Navbar = ({ toggleSidebar }) => {
   };
 
   const handleDarkModeToggle = () => {
-    setDarkMode(!darkMode);
+    const newDarkMode = !darkMode;
+    setDarkMode(newDarkMode);
+    
+    // Toggle dark mode class on body
+    if (newDarkMode) {
+      document.body.classList.add('dark-mode');
+    } else {
+      document.body.classList.remove('dark-mode');
+    }
   };
+
+  useEffect(() => {
+    const savedDarkMode = localStorage.getItem('darkMode') === 'true';
+    if (savedDarkMode) {
+      setDarkMode(true);
+      document.body.classList.add('dark-mode');
+    }
+  }, []);
+  
+  useEffect(() => {
+    // Save dark mode preference
+    localStorage.setItem('darkMode', darkMode.toString());
+  }, [darkMode]);
 
   // Ambil teks sesuai bahasa
   const texts = locales[language];
@@ -123,12 +164,6 @@ const Navbar = ({ toggleSidebar }) => {
         zIndex: 10
       }}
     >
-      {/* <IconButton
-        onClick={toggleSidebar}
-        sx={{ mr: 2, display: { xs: 'flex', md: 'none' } }}
-      >
-        <MenuIcon />
-      </IconButton> */}
       <Link to='/' style={{ display: 'flex', alignItems: 'center' }}>
         {!isMobile && (
           <img src={logo} alt='AGUNG MUSIC' height={45} />
@@ -143,53 +178,44 @@ const Navbar = ({ toggleSidebar }) => {
       </Link>
       <SearchBar />
       {loggedIn ? (
-        <>
+        <Stack 
+          direction="row" 
+          alignItems="center" 
+          spacing={2}
+        >
+          {/* Tambahkan ikon settings */}
+          <Tooltip title={texts.settings}>
+            <IconButton 
+              onClick={handleOpenSettings}
+              sx={{ 
+                color: darkMode ? 'white' : 'black',
+                transition: 'transform 0.2s',
+                '&:hover': {
+                  transform: 'rotate(45deg)'
+                }
+              }}
+            >
+              <SettingsIcon />
+            </IconButton>
+          </Tooltip>
+
           <Avatar 
             src={profile?.imageUrl} 
             alt={profile?.name} 
             onClick={handleMenuOpen} 
-            sx={{ cursor: 'pointer', ml: 2 }}
+            sx={{ 
+              cursor: 'pointer', 
+              border: `2px solid ${darkMode ? 'white' : 'primary.main'}` 
+            }}
           />
           <Menu
             anchorEl={anchorEl}
             open={Boolean(anchorEl)}
             onClose={handleMenuClose}
           >
-            <MenuItem onClick={handleOpenSettings}>{texts.settings}</MenuItem>
             <MenuItem onClick={handleSignOut}>{texts.signOut}</MenuItem>
           </Menu>
-          <Dialog
-            open={openSettings}
-            onClose={handleCloseSettings}
-            TransitionComponent={Transition}
-          >
-            <DialogTitle>{texts.settings}</DialogTitle>
-            <DialogContent>
-              <FormControl fullWidth margin="normal">
-                <InputLabel>{texts.language}</InputLabel>
-                <Select
-                  value={language}
-                  onChange={handleLanguageChange}
-                >
-                  <MuiMenuItem value="en">English</MuiMenuItem>
-                  <MuiMenuItem value="id">Indonesian</MuiMenuItem>
-                </Select>
-              </FormControl>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={darkMode}
-                    onChange={handleDarkModeToggle}
-                  />
-                }
-                label={texts.darkMode}
-              />
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={handleCloseSettings}>{texts.close}</Button>
-            </DialogActions>
-          </Dialog>
-        </>
+        </Stack>
       ) : (
         <Button 
           variant="outlined" 
@@ -200,6 +226,64 @@ const Navbar = ({ toggleSidebar }) => {
           Sign In to YouTube
         </Button>
       )}
+
+      {/* Dialog Settings */}
+      <Dialog
+        open={openSettings}
+        onClose={handleCloseSettings}
+        TransitionComponent={Transition}
+        sx={{
+          '& .MuiDialog-paper': {
+            borderRadius: 4,
+            background: darkMode ? '#1e1e1e' : 'white',
+            color: darkMode ? 'white' : 'black'
+          }
+        }}
+      >
+        <DialogTitle sx={{ fontWeight: 'bold' }}>{texts.settings}</DialogTitle>
+        <DialogContent>
+          <FormControl fullWidth margin="normal">
+            <InputLabel sx={{ color: darkMode ? 'white' : 'black' }}>
+              {texts.language}
+            </InputLabel>
+            <Select
+              value={language}
+              onChange={handleLanguageChange}
+              sx={{ 
+                color: darkMode ? 'white' : 'black',
+                '& .MuiSelect-icon': {
+                  color: darkMode ? 'white' : 'black'
+                }
+              }}
+            >
+              <MuiMenuItem value="en">English</MuiMenuItem>
+              <MuiMenuItem value="id">Indonesian</MuiMenuItem>
+            </Select>
+          </FormControl>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={darkMode}
+                onChange={handleDarkModeToggle}
+              />
+            }
+            label={texts.darkMode}
+            sx={{ 
+              color: darkMode ? 'white' : 'black' 
+            }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={handleCloseSettings}
+            sx={{ 
+              color: darkMode ? 'white' : 'primary.main' 
+            }}
+          >
+            {texts.close}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Stack>
   );
 };

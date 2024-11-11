@@ -21,7 +21,10 @@ import {
   AppBar,
   Toolbar,
   Slider,
-  CircularProgress,
+  CircularProgress, 
+  Tooltip,
+
+
 } from "@mui/material";
 import {
   CheckCircle,
@@ -40,6 +43,7 @@ import { locales } from '../locales';
 
 
 const VideoDetail = () => {
+  const [darkMode, setDarkMode] = useState(false);
   const [language, setLanguage] = useState('en'); // Set default language
   const texts = locales[language];
   const [videoDetail, setVideoDetail] = useState(null);
@@ -75,6 +79,11 @@ const VideoDetail = () => {
   const [comments, setComments] = useState([]);
 
 
+  // darkmode color
+  const backgroundColor = darkMode ? '#121212' : '#ffffff';
+  const textColor = darkMode ? '#ffffff' : '#000000';
+  const paperBackground = darkMode ? '#1e1e1e' : '#f5f5f5';
+
   const fetchComments = useCallback(async () => {
     // Replace with your API call to fetch comments
     // Example:
@@ -92,54 +101,66 @@ const VideoDetail = () => {
     setNewComment("");
   };
 
+  // Darkmode
+  useEffect(() => {
+    const savedDarkMode = localStorage.getItem('darkMode') === 'true';
+    setDarkMode(savedDarkMode);
+  }, []);
+
   useEffect(() => {
     fetchComments();
   }, [fetchComments]);
 
   const fetchLyrics = useCallback(async (title, artist) => {
     const { songTitle, artist: cleanedArtist } = extractTitleAndArtist(title);
-    const lyricsURL = `https://api.lyrics.ovh/v1/${cleanedArtist}/${songTitle}`;
-    const geniusURL = `https://api.genius.com/search?q=${encodeURIComponent(
-      songTitle + " " + cleanedArtist
-    )}&access_token=${process.env.GENIUS_API_KEY}`;
 
     try {
-      // Try fetching lyrics from lyrics.ovh
-      const response = await axios.get(lyricsURL);
-      if (response.data.lyrics) {
-        const formattedLyrics = response.data.lyrics.replace(/\n{2,}/g, "\n\n");
-        const lines = formattedLyrics
-          .split("\n")
-          .filter((line) => line.trim() !== "");
-        setLyricsLines(lines);
-        setLyrics(formattedLyrics);
-      } else {
-        // If no lyrics found, try Genius API
-        const geniusResponse = await axios.get(geniusURL);
-        if (geniusResponse.data.response.hits.length > 0) {
-          const geniusLyricsPath =
-            geniusResponse.data.response.hits[0].result.path;
-          const geniusLyricsURL = `https://api.genius.com${geniusLyricsPath}?access_token=${process.env.GENIUS_API_KEY}`;
-
-          const geniusLyricsResponse = await axios.get(geniusLyricsURL);
-          const geniusLyrics = extractLyricsFromGeniusResponse(
-            geniusLyricsResponse.data
-          );
-          const formattedLyrics = geniusLyrics.replace(/\n{2,}/g, "\n\n");
-          const lines = formattedLyrics
+      // Fetch lyrics from LRCLib
+      const lrcLibURL = `https://lrclib.net/api/search?track_name=${encodeURIComponent(songTitle)}&artist_name=${encodeURIComponent(cleanedArtist)}`;
+      
+      const response = await axios.get(lrcLibURL);
+      
+      if (response.data && response.data.length > 0) {
+        // Ambil ID lagu pertama yang cocok
+        const songId = response.data[0].id;
+        
+        // Fetch lirik berdasarkan ID
+        const lyricsResponse = await axios.get(`https://lrclib.net/api/get/${songId}`);
+        
+        if (lyricsResponse.data.plainLyrics) {
+          const formattedLyrics = lyricsResponse.data.plainLyrics.replace(/\n{2,}/g, "\n\n");
+          const lyricsWithSource = `${formattedLyrics}\n\n[Source: LRCLIB]`;
+          
+          const lines = lyricsWithSource
             .split("\n")
             .filter((line) => line.trim() !== "");
+          
           setLyricsLines(lines);
-          setLyrics(formattedLyrics);
+          setLyrics(lyricsWithSource);
         } else {
           setLyrics("Lyrics not available");
         }
+      } else {
+        setLyrics("Lyrics not available");
       }
     } catch (error) {
       console.error("Error fetching lyrics:", error);
       setLyrics("Lyrics not available");
     }
-  }, []); 
+  }, []);
+
+  {lyrics.split('\n').map((line, index) => (
+    <Typography 
+      key={index} 
+      variant="body1" 
+      sx={{ 
+        color: line.startsWith('Source:') ? 'gray' : 'inherit',
+        fontStyle: line.startsWith('Source:') ? 'italic' : 'normal'
+      }}
+    >
+      {line}
+    </Typography>
+  ))}
 
   const extractLyricsFromGeniusResponse = (data) => {
     // Implement the function to extract lyrics from Genius response
@@ -162,16 +183,54 @@ const VideoDetail = () => {
         console.error("Error fetching video data:", error);
       }
     };
-
     const fetchRelatedVideos = async () => {
       try {
+        // Dapatkan video terkait dengan sorting berdasarkan view count
         const relatedVideosResponse = await fetchFromAPI(
-          `search?part=snippet&relatedToVideoId=${id}&type=video`
+          `search?part=snippet&relatedToVideoId=${id}&type=video&order=viewCount&maxResults=50`
         );
-        setVideos(relatedVideosResponse.items);
+    
+        // Filter dan urutkan video berdasarkan view count
+        const sortedVideos = relatedVideosResponse.items
+          .filter(video => 
+            video.snippet.thumbnails.high && // Pastikan memiliki thumbnail berkualitas
+            video.snippet.title.toLowerCase().indexOf('short') === -1 // Hindari shorts
+          )
+          .sort((a, b) => {
+            // Jika memungkinkan, tambahkan logika sorting tambahan
+            const titleQualityA = checkTitleQuality(a.snippet.title);
+            const titleQualityB = checkTitleQuality(b.snippet.title);
+            return titleQualityB - titleQualityA;
+          })
+          .slice(0, 10); // Ambil 10 video terbaik
+    
+        setVideos(sortedVideos);
       } catch (error) {
         console.error("Error fetching related videos:", error);
+        // Fallback ke daftar default jika gagal
+        setVideos([]);
       }
+    };
+    
+    // Fungsi pembantu untuk menilai kualitas judul
+    const checkTitleQuality = (title) => {
+      let quality = 0;
+      
+      // Berikan skor berdasarkan kriteria
+      if (title.length > 10 && title.length < 70) quality += 2; // Judul ideal
+      if (!/\b(short|shorts)\b/i.test(title)) quality += 1; // Hindari shorts
+      
+      // Tambahkan kriteria lain sesuai kebutuhan
+      const qualityKeywords = [
+        'official', 'video', 'live', 'acoustic', 
+        'remix', 'cover', 'music'
+      ];
+      
+      qualityKeywords.forEach(keyword => {
+        if (title.toLowerCase().includes(keyword)) quality += 1;
+      });
+    
+      return quality;
     };
 
     fetchVideoData();
@@ -368,197 +427,200 @@ const VideoDetail = () => {
   
   return (
     <Box
-    minHeight="95vh"
-    bgcolor={theme.palette.background.default}
-    sx={{ overflow: "hidden", position: "relative" }}
-  >
-    <Grid container spacing={3}>
-      <Grid item xs={12} md={8}>
-        <Box sx={{ position: "relative", zIndex: 1 }}>
-          <ReactPlayer
-            url={`https://www.youtube.com/watch?v=${id}`}
-            className="react-player"
-            width="100%"
-            height="450px"
-            playing={playing}
-            onEnded={handleVideoEnd}
-            onProgress={handleProgress}
-            playbackRate={playbackRate}
-            pitch={pitch}
-            ref={playerRef}
-          />
-  
-            {!isMobile && (
-              <Box sx={{ position: 'absolute', bottom: 0, width: '100%' }}>
-                <AppBar
-                  position="static"
-                  sx={{
-                    bgcolor: theme.palette.background.default,
-                    boxShadow: 'none',
+      minHeight="95vh"
+      sx={{ 
+        backgroundColor: backgroundColor,
+        color: textColor,
+        overflow: "hidden", 
+        position: "relative", 
+        p: { xs: 1, md: 3 }
+      }}
+    >
+       <Grid container spacing={3}>
+        {/* Video Player Section */}
+        <Grid item xs={12} md={8}>
+          <Paper 
+            elevation={3}
+            sx={{ 
+              borderRadius: 3, 
+              overflow: 'hidden',
+              boxShadow: '0 8px 20px rgba(0,0,0,0.1)',
+              transition: 'transform 0.3s ease',
+              backgroundColor: paperBackground,
+              '&:hover': {
+                transform: 'scale(1.01)'
+              }
+            }}
+          >
+            <Box sx={{ position: "relative", zIndex: 1 }}>
+              <ReactPlayer
+                url={`https://www.youtube.com/watch?v=${id}`}
+                className="react-player"
+                width="100%"
+                height="450px"
+                playing={playing}
+                onEnded={handleVideoEnd}
+                onProgress={handleProgress}
+                playbackRate={playbackRate}
+                pitch={pitch}
+                ref={playerRef}
+                style={{ 
+                  borderRadius: '16px',
+                  backgroundColor: 'white',
+                }}
+              />
+
+              {!isMobile && (
+                <Box 
+                  sx={{ 
+                    position: 'absolute', 
+                    bottom: 0, 
+                    width: '100%',
+                    background: 'linear-gradient(to top, rgba(255,255,255,0.7), transparent)'
                   }}
                 >
-                  <Toolbar>
-                    <IconButton onClick={togglePlayPause}>
-                      {playing ? <Pause /> : <PlayArrow />}
-                    </IconButton>
-                    <Slider
-                      value={played * 100}
-                      onChange={handleSeekChange}
-                      aria-labelledby="continuous-slider"
-                      sx={{ width: "90%", mx: 2 }}
-                    />
-                    <IconButton onClick={handleVideoEnd}>
-                      <SkipNext />
-                    </IconButton>
-                    <IconButton onClick={toggleLyrics}>
-                      <Lyrics />
-                    </IconButton>
-                    <IconButton onClick={toggleSleepTimer}>
-                      <AccessTime />
-                    </IconButton>
-                    <Popover
-                      open={showSleepTimer}
-                      onClose={toggleSleepTimer}
-                      anchorEl={anchorEl}
-                      anchorOrigin={{
-                        vertical: "bottom",
-                        horizontal: "right",
-                      }}
-                      transformOrigin={{
-                        vertical: "top",
-                        horizontal: "right",
-                      }}
-                    >
-                      <Paper sx={{ p: 2, width: "250px" }}>
-                        <Typography variant="h6" gutterBottom>
-                          Timer
-                        </Typography>
-                        <TextField
-                          label="Minutes"
-                          type="number"
-                          value={sleepTimerValue}
-                          onChange={(e) => setSleepTimerValue(e.target.value)}
-                          InputProps={{ inputProps: { min: 1, max: 120 } }}
-                          fullWidth
+                  <AppBar
+                    position="static"
+                    sx={{
+                      bgcolor: 'rgba(255,255,255,0.9)',
+                      boxShadow: 'none',
+                    }}
+                  >
+                    <Toolbar>
+                      <Stack 
+                        direction="row" 
+                        spacing={1} 
+                        alignItems="center" 
+                        sx={{ width: '100%' }}
+                      >
+                        <IconButton onClick={togglePlayPause} sx={{ color: 'black' }}>
+                          {playing ? <Pause /> : <PlayArrow />}
+                        </IconButton>
+                        <Slider
+                          value={played * 100}
+                          onChange={handleSeekChange}
+                          aria-labelledby="continuous-slider"
+                          sx={{ 
+                            width: "70%",
+                            color: 'black',
+                            '& .MuiSlider-thumb': {
+                              backgroundColor: 'black',
+                            },
+                            '& .MuiSlider-track': {
+                              backgroundColor: 'black',
+                            },
+                          }}
                         />
-                        <DialogActions>
-                          <Button onClick={handleSetSleepTimer} color="primary">
-                            Set Timer
-                          </Button>
-                        </DialogActions>
-                      </Paper>
-                    </Popover>
-                    <IconButton
-                      aria-describedby={openMore ? "popover-more" : undefined}
-                      onClick={handleClickMore}
-                    >
-                      <MoreVert />
-                    </IconButton>
-                    <Popover
-                      id="popover-more"
-                      open={openMore}
-                      anchorEl={anchorEl}
-                      onClose={handleCloseMore}
-                      anchorOrigin={{
-                        vertical: "bottom",
-                        horizontal: "right",
-                      }}
-                      transformOrigin={{
-                        vertical: "top",
-                        horizontal: "right",
-                      }}
-                    >
-                      <Paper>
-                        <MenuItem onClick={toggleAdvancedSettings}>
-                          Advanced Settings
-                        </MenuItem>
-                        <MenuItem onClick={openDetails}>Details</MenuItem>
-                        <MenuItem onClick={openShare}>Share</MenuItem>
-                      </Paper>
-                    </Popover>
-                  </Toolbar>
-                </AppBar>
-              </Box>
-            )}
-          </Box>
+                        <IconButton onClick={handleVideoEnd} sx={{ color: 'black' }}>
+                          <SkipNext />
+                        </IconButton>
+                        <IconButton onClick={toggleLyrics} sx={{ color: 'black' }}>
+                          <Lyrics />
+                        </IconButton>
+                        <IconButton onClick={toggleSleepTimer} sx={{ color: 'black' }}>
+                          <AccessTime />
+                        </IconButton>
+                        <IconButton
+                          aria-describedby={openMore ? "popover-more" : undefined}
+                          onClick={handleClickMore}
+                          sx={{ color: 'black' }}
+                        >
+                          <MoreVert />
+                        </IconButton>
+                      </Stack>
+                    </Toolbar>
+                  </AppBar>
+                </Box>
+              )}
+            </Box>
+          </Paper>
         </Grid>
+
+        {/* Lyrics and Related Videos Section */}
         <Grid item xs={12} md={4}>
-          <Box sx={{ p: 2 }}>
-            <Stack direction="column" spacing={2}>
+          <Stack spacing={3}>
             {showLyrics && (
               <Paper
-                elevation={0}
-                sx={{ maxHeight: "50vh", overflowY: "auto", p: 2, position: 'relative' }}
+                elevation={2}
+                sx={{ 
+                  maxHeight: "50vh", 
+                  overflowY: "auto", 
+                  p: 3, 
+                  borderRadius: 3,
+                  backgroundColor: paperBackground,
+                  color: textColor,
+                  boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+                }}
               >
                 <Stack
                   direction="row"
                   alignItems="center"
-                  spacing={1}
+                  justifyContent="space-between"
                   sx={{ mb: 2 }}
                 >
-                  <Typography variant="h6" color="primary">
+                  <Typography 
+                    variant="h6" 
+                    color="primary" 
+                    sx={{ fontWeight: 'bold' }}
+                  >
                     Lyrics
                   </Typography>
-                  <IconButton onClick={() => setShowEditPopup(true)}>
-                    <Edit />
+                  <IconButton 
+                    onClick={() => setShowEditPopup(true)}
+                    size="small"
+                  >
+                    <Edit fontSize="small" />
                   </IconButton>
                 </Stack>
+                
                 <Typography
                   color={theme.palette.text.primary}
                   variant="body1"
-                  sx={{ whiteSpace: "pre-line" }}
+                  sx={{ 
+                    whiteSpace: "pre-line",
+                    lineHeight: 1.6,
+                  }}
                 >
                   {lyrics}
                 </Typography>
               </Paper>
             )}
-              <Button
-                onClick={toggleRelatedVideos}
-                variant="outlined"
-                color="primary"
-                fullWidth
-                sx={{ mt: 2, borderRadius: 8 }}
-              >
-                {showRelatedVideos
-                  ? "Hide Related Videos"
-                  : "Show Related Videos"}
-              </Button>
-              {showRelatedVideos && (
-                <Box mt={2}>
-                  <Typography variant="h6" color="primary">
-                    Related Videos
-                  </Typography>
-                  <Videos videos={videos} direction="column" />
-                </Box>
-              )}
-               {/* <Button
-                onClick={() => setShowComments(!showComments)}
-                variant="outlined"
-                color="primary"
-                fullWidth
-                sx={{ mt: 2, borderRadius: 8 }}
-              >
-                {showComments ? "Hide Comments" : "Show Comments"}
-              </Button>
-
-              {showComments && (
-                <Box mt={2}>
-                  <Typography variant="h6" color="primary">
-                    Comments
-                  </Typography>
-                  {comments.length > 0 ? (
-                    comments.map((comment, index) => (
-                      <Paper key={index} sx={{ p: 2, mb: 1 }}>
-                        <Typography variant="body1">{comment}</Typography>
-                      </Paper>
-                    ))
-                  ) : (
-                    <Typography>No comments available.</Typography>
-                  )}
-                </Box>
-              )} */}
-            </Stack>
-          </Box>
+  
+  <Button
+              onClick={toggleRelatedVideos}
+              variant="outlined"
+              color="primary"
+              fullWidth
+              sx={{ 
+                borderRadius: 8, 
+                py: 1.5,
+                fontWeight: 'bold',
+                borderWidth: 2,
+                backgroundColor: darkMode ? 'rgba(255,255,255,0.1)' : 'transparent',
+                color: darkMode ? '#ffffff' : 'primary',
+                '&:hover': {
+                  borderWidth: 2,
+                  backgroundColor: darkMode ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)'
+                }
+              }}
+            >
+              {showRelatedVideos
+                ? "Hide Related Videos"
+                : "Show Related Videos"}
+            </Button>
+            {showRelatedVideos && (
+              <Box>
+                <Typography 
+                  variant="h6" 
+                  color="primary" 
+                  sx={{ mb: 2, fontWeight: 'bold' }}
+                >
+                  Related Videos
+                </Typography>
+                <Videos videos={videos} direction="column" />
+              </Box>
+            )}
+          </Stack>
         </Grid>
       </Grid>
   
@@ -587,7 +649,7 @@ const VideoDetail = () => {
               {playing ? <Pause /> : <PlayArrow />}
             </IconButton>
             <Slider
-              value={played * 100}
+              value ={played * 100}
               onChange={handleSeekChange}
               aria-labelledby="continuous-slider"
               sx={{ width: "70%" }}
@@ -598,9 +660,9 @@ const VideoDetail = () => {
           </Stack>
           <Stack
             direction="row"
-            spacing={2}  // Add spacing between icons
+            spacing={2}
             alignItems="center"
-            justifyContent="center"  // Center icons horizontally
+            justifyContent="center"
             sx={{ width: '100%', p: 1 }}
           >
             <IconButton onClick={toggleLyrics}>
@@ -617,8 +679,8 @@ const VideoDetail = () => {
             </IconButton>
           </Stack>
         </AppBar>
-      )}
-  
+      )};
+        
       {/* Dialogs */}
       <Dialog open={showAdvancedSettings} onClose={toggleAdvancedSettings}>
         <DialogTitle>Advanced Settings</DialogTitle>
@@ -693,19 +755,18 @@ const VideoDetail = () => {
           </Button>
         </DialogActions>
       </Dialog>
-
-       
+  
       <Dialog open={showEditPopup} onClose={() => setShowEditPopup(false)}>
         <DialogTitle>Edit Lyrics</DialogTitle>
         <DialogContent>
-          <TextField
-            label="Lyrics"
-            multiline
-            rows={10}
-            fullWidth
-            value={editedLyrics}
-            onChange={(e) => setEditedLyrics(e.target.value)}
-          />
+        <TextField
+    label="Lyrics"
+    multiline
+    rows={10}
+    fullWidth
+    value={editedLyrics}
+    onChange={(e) => setEditedLyrics(e.target.value)}
+  />
         </DialogContent>
         <DialogActions>
           <Button onClick={handleSaveLyrics} color="primary">
@@ -719,7 +780,7 @@ const VideoDetail = () => {
           </Button>
         </DialogActions>
       </Dialog>
-
+  
       <Dialog open={showCommentDialog} onClose={() => setShowCommentDialog(false)}>
         <DialogTitle>Comments</DialogTitle>
         <DialogContent>
@@ -752,6 +813,5 @@ const VideoDetail = () => {
       </Dialog>
     </Box>
   );
-};  
-
+}
 export default VideoDetail;

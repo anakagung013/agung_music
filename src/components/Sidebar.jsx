@@ -1,125 +1,138 @@
 import React from 'react';
-import { Box, Button, Typography, AppBar, Toolbar, useMediaQuery, useTheme } from '@mui/material';
+import { 
+  Box, 
+  Button, 
+  Typography, 
+  AppBar, 
+  Toolbar, 
+  useMediaQuery, 
+  useTheme, 
+  Tooltip,
+  Container
+} from '@mui/material';
 import { categories } from '../utils/constant';
 
 const Sidebar = ({ selectedCategory, setSelectedCategory, isSidebarOpen }) => {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md')); // Detect if the device is mobile
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isTablet = useMediaQuery(theme.breakpoints.between('md', 'lg'));
 
-  const sidebarContent = (
-    <Box
-      sx={{
-        overflowY: 'auto',
-        height: { xs: 'auto', md: '96%' },
-        flexDirection: { md: 'column' },
-        display: { md: isSidebarOpen ? 'block' : 'none' } // Tampilkan atau sembunyikan sidebar berdasarkan isSidebarOpen
-      }}
-    >
-      {categories.map((category) => (
-        <Button
-          key={category.name}
-          variant="text"
-          fullWidth
-          onClick={() => setSelectedCategory(category.name)}
-          style={{
-            backgroundColor: category.name === selectedCategory ? 'skyblue' : 'transparent',
-            color: category.name === selectedCategory ? '#ffffff' : 'inherit',
-            padding: '10px',
-            marginBottom: '5px',
-            textTransform: 'none',
-            justifyContent: 'flex-start',
+  const CategoryButton = ({ category }) => (
+    <Tooltip title={category.name} placement="right">
+      <Button
+        fullWidth
+        onClick={() => setSelectedCategory(category.name)}
+        sx={{
+          justifyContent: 'flex-start',
+          alignItems: 'center',
+          py: 1.5,
+          px: 2,
+          borderRadius: 3,
+          transition: 'all 0.3s ease',
+          backgroundColor: category.name === selectedCategory 
+            ? 'rgba(33, 150, 243, 0.1)' // Soft blue background when selected
+            : 'transparent',
+          '&:hover': {
+            backgroundColor: 'rgba(33, 150, 243, 0.05)',
+            transform: 'scale(1.02)',
+          }
+        }}
+      >
+        <Box 
+          sx={{ 
+            color: category.name === selectedCategory 
+              ? theme.palette.primary.main 
+              : theme.palette.text.secondary,
+            display: 'flex',
             alignItems: 'center',
-            textAlign: 'left',
-            borderRadius: '26px', // Menambahkan radius border
+            mr: 2
           }}
         >
-          <span
-            style={{
-              color: category.name === selectedCategory ? '#ffffff' : 'skyblue',
-              marginRight: '15px',
-              fontSize: '1.2rem',
-              display: 'flex',
-              alignItems: 'center',
-            }}
-          >
-            {category.icon}
-          </span>
+          {category.icon}
+        </Box>
+        {(!isMobile && isSidebarOpen) && (
           <Typography
-            variant="body1"
-            style={{
-              opacity: category.name === selectedCategory ? '1' : '0.8',
-              display: isMobile ? 'none' : 'block', // Hide text on mobile
+            variant="body2"
+            sx={{
+              color: category.name === selectedCategory 
+                ? theme.palette.primary.main 
+                : theme.palette.text.primary,
+              fontWeight: category.name === selectedCategory ? 600 : 400,
+              opacity: category.name === selectedCategory ? 1 : 0.8,
             }}
           >
             {category.name}
           </Typography>
-        </Button>
-      ))}
-    </Box>
+        )}
+      </Button>
+    </Tooltip>
   );
 
-  return (
-    <>
-      {isMobile ? (
-        // Navbar for mobile devices
-        <AppBar
-          position="fixed"
-          sx={{
-            top: 'auto',
-            bottom: 0,
-            backgroundColor: theme.palette.background.default,
-            boxShadow: 'none', // Remove shadow for a cleaner look
-            display: 'flex',
-            justifyContent: 'space-around', // Distribute buttons evenly
-            alignItems: 'center',
-          }}
-        >
-          <Toolbar>
-            {categories.map((category) => (
+  // Mobile Bottom Navigation
+  if (isMobile) {
+    return (
+      <AppBar
+        position="fixed"
+        color="default"
+        sx={{
+          top: 'auto',
+          bottom: 0,
+          backgroundColor: theme.palette.background.paper,
+          boxShadow: '0 -2px 10px rgba(0,0,0,0.05)',
+        }}
+      >
+        <Toolbar sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-around', 
+          alignItems: 'center' 
+        }}>
+          {categories.map((category) => (
+            <Tooltip key={category.name} title={category.name} placement="top">
               <Button
-                key={category.name}
                 onClick={() => setSelectedCategory(category.name)}
-                style={{
-                  color: 'skyblue', // Set default color for all icons
-                  padding: '10px',
+                sx={{
+                  minWidth: 'auto',
+                  color: category.name === selectedCategory 
+                    ? theme.palette.primary.main 
+                    : theme.palette.text.secondary,
                 }}
               >
-                <span
-                  style={{
-                    color: 'skyblue', // Set default color for all icons
-                    marginRight: '8px',
-                    fontSize: '1.2rem',
-                  }}
-                >
-                  {category.icon}
-                </span>
-                {/* Hide text on mobile */}
-                <Typography
-                  variant="body2"
-                  style={{
-                    display: 'none',
-                  }}
-                >
-                  {category.name}
-                </Typography>
+                {category.icon}
               </Button>
-            ))}
-          </Toolbar>
-        </AppBar>
-      ) : (
-        // Sidebar for larger screens
-        <Box
-          sx={{
-            overflowY: 'auto',
-            height: '96%',
-            flexDirection: 'column',
-            display: isSidebarOpen ? 'block' : 'none'
-          }}
-        >
-          {sidebarContent}
-        </Box>
-      )}
-    </>
+            </Tooltip>
+          ))}
+        </Toolbar>
+      </AppBar>
+    );
+  }
+
+  // Desktop Sidebar
+  return (
+    <Box
+      sx={{
+        width: isSidebarOpen ? { xs: 240, md: 240 } : 80,
+        height: '100%',
+        backgroundColor: theme.palette.background.paper,
+        borderRight: `1px solid ${theme.palette.divider}`,
+        transition: 'width 0.3s ease',
+        overflowX: 'hidden',
+        overflowY: 'auto',
+        position: 'fixed',
+        left: 0,
+        top: 0,
+        pt: 10, // Adjust based on your navbar height
+        zIndex: 1000,
+      }}
+    >
+      <Box sx={{ px: isSidebarOpen ? 2 : 1 }}>
+        {categories.map((category) => (
+          <CategoryButton 
+            key={category.name} 
+            category={category} 
+          />
+        ))}
+      </Box>
+    </Box>
   );
 };
 

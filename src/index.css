@@ -3,6 +3,26 @@ body {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+/* Dark mode styles */
+body.dark-mode {
+  background-color: #121212;
+  color: #ffffff;
+}
+
+body.dark-mode a {
+  color: #ffffff;
+}
+
+body.dark-mode ::-webkit-scrollbar-thumb {
+  background-color: #555;
+}
+
+body.dark-mode .category-btn:hover {
+  background-color: #333 !important;
+  color: white !important;
 }
 
 a {
@@ -43,6 +63,7 @@ a {
   border: none;
   outline: none;
   width: 350px;
+  
 }
 
 .category-btn {
